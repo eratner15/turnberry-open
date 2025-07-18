@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turnberry Open Heritage Collection | Vintage Golf Tournament Posters</title>
+    <meta name="description" content="Authentic vintage golf tournament posters from the prestigious Turnberry Open. Six decades of championship history captured in rare collectible prints.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@300;400;600;700&family=Bebas+Neue&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <img src="assets/images/hero_gif.gif" alt="Turnberry Open" class="loading-logo">
+            <div class="loading-text">Loading Vintage Collection...</div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" role="navigation" aria-label="Main navigation">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="assets/images/LOGO.webp" alt="Turnberry Open Heritage Collection" class="logo">
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link">Home</a></li>
+                <li><a href="#collection" class="nav-link">Collection</a></li>
+            </ul>
+            <div class="nav-cta">
+                <a href="#collection" class="nav-btn">View Designs</a>
+            </div>
+            <button class="nav-hamburger" aria-label="Toggle navigation menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-background">
+            <div class="hero-overlay"></div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-badge">Est. 1965</div>
+            <h1 class="hero-title">Turnberry Open</h1>
+            <p class="hero-subtitle">Classic tournament designs on premium apparel</p>
+            <p class="hero-description">Celebrate six decades of Turnberry Open history with vintage-inspired t-shirts featuring authentic tournament poster designs.</p>
+            <div class="hero-actions">
+                <a href="#collection" class="btn btn-primary">Shop Designs</a>
+            </div>
+        </div>
+        <div class="hero-stats">
+            <div class="stat-item">
+                <span class="stat-number">25</span>
+                <span class="stat-label">Vintage Designs</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">60</span>
+                <span class="stat-label">Years Heritage</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">1965</span>
+                <span class="stat-label">Since</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Collection Section -->
+    <section id="collection" class="collection-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Vintage T-Shirt Designs</h2>
+                <p class="section-subtitle">Choose from classic tournament poster designs</p>
+            </div>
+            
+            <div class="collection-filters">
+                <button class="filter-btn active" data-filter="all" aria-pressed="true">All Eras</button>
+                <button class="filter-btn" data-filter="vintage" aria-pressed="false">Classic Era (1960s-1980s)</button>
+                <button class="filter-btn" data-filter="modern" aria-pressed="false">Modern Era (1990s-2010s)</button>
+                <button class="filter-btn" data-filter="contemporary" aria-pressed="false">Contemporary (2015-2025)</button>
+            </div>
+
+            <div class="collection-grid" id="collectionGrid">
+                <!-- Poster cards will be dynamically generated here -->
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="assets/images/LOGO.webp" alt="Turnberry Open" class="footer-logo">
+                    <p>Vintage tournament designs since 1965</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Turnberry Open Vintage T-Shirts. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/js/script.js"></script>
+</body>
+</html>
