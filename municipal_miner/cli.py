@@ -1,6 +1,7 @@
 """Click CLI for Municipal Intent Miner."""
 
 import sys
+import json
 from pathlib import Path
 
 import click
@@ -12,6 +13,8 @@ from .database import MunicipalDatabase
 from .pdf_processor import PDFProcessor
 from .classifier import SignalClassifier
 from .reporter import ReportGenerator
+from .scraper import MunicipalScraper
+from .validator import QuoteValidator, FactChecker
 
 console = Console()
 
@@ -50,6 +53,57 @@ def init(db_path):
 
 
 @cli.command()
+@click.option('--pdf-dir', default='./test_pdfs', help='Directory to save PDFs')
+@click.option('--city', type=click.Choice(['austin', 'dallas', 'houston', 'san-antonio', 'fort-worth', 'all']), default='all', help='City to scrape')
+@click.option('--max-pdfs', default=5, type=int, help='Max PDFs per city')
+def scrape(pdf_dir, city, max_pdfs):
+    """Scrape PDFs from Texas municipal websites."""
+
+    console.print(f"[bold]Scraping municipal documents...[/bold]")
+    console.print(f"Target: {city}")
+    console.print(f"Max PDFs per city: {max_pdfs}")
+    console.print(f"Download directory: {pdf_dir}")
+    console.print("")
+
+    scraper = MunicipalScraper(download_dir=pdf_dir, delay=2.0)
+
+    try:
+        if city == 'all':
+            results = scraper.scrape_all_texas(pdfs_per_city=max_pdfs)
+
+            console.print("")
+            console.print("[bold green]Scraping complete![/bold green]")
+            console.print("")
+
+            total_pdfs = 0
+            for city_name, pdfs in results.items():
+                console.print(f"  {city_name}: {len(pdfs)} PDFs")
+                total_pdfs += len(pdfs)
+
+            console.print(f"\nTotal PDFs downloaded: {total_pdfs}")
+
+        else:
+            city_map = {
+                'austin': scraper.scrape_austin,
+                'dallas': scraper.scrape_dallas,
+                'houston': scraper.scrape_houston,
+                'san-antonio': scraper.scrape_san_antonio,
+                'fort-worth': scraper.scrape_fort_worth,
+            }
+
+            scraper_func = city_map[city]
+            pdfs = scraper_func(max_pdfs=max_pdfs)
+
+            console.print("")
+            console.print(f"[green]✓[/green] Downloaded {len(pdfs)} PDFs from {city.title()}")
+
+    except Exception as e:
+        console.print(f"[bold red]Error: {e}[/bold red]")
+        logger.exception("Scraping failed")
+        sys.exit(1)
+
+
+@cli.command()
 @click.option('--pdf-dir', required=True, help='Directory containing PDFs to process')
 @click.option('--vertical', required=True, help='Vertical to analyze (e.g., police-tech)')
 @click.option('--db-path', default='./miner.db', help='Path to SQLite database')
@@ -77,6 +131,8 @@ def process(pdf_dir, vertical, db_path, model):
     db = MunicipalDatabase(db_path)
     pdf_processor = PDFProcessor()
     classifier = SignalClassifier(model_name=model)
+    validator = QuoteValidator(min_similarity=0.85)  # 85% similarity required
+    fact_checker = FactChecker()
 
     # Process each PDF
     processed_count = 0
@@ -103,8 +159,8 @@ def process(pdf_dir, vertical, db_path, model):
                 continue
 
             try:
-                # Extract text
-                raw_text, metadata, page_count = pdf_processor.process_pdf(pdf_path)
+                # Extract text with page tracking
+                raw_text, metadata, page_count, page_texts = pdf_processor.process_pdf(pdf_path)
 
                 # Insert document
                 document_data = {
@@ -128,34 +184,59 @@ def process(pdf_dir, vertical, db_path, model):
                     metadata=metadata.dict(),
                 )
 
-                # Insert signals if found
-                if llm_response.has_signal and llm_response.signals:
+                # VALIDATION LAYER - Verify quotes against source
+                validated_response, validation_warnings = validator.validate_response(
+                    llm_response,
+                    raw_text,
+                    page_texts
+                )
+
+                # Insert signals if found (after validation)
+                if validated_response.has_signal and validated_response.signals:
                     signals_data = []
-                    for signal in llm_response.signals:
+                    for signal in validated_response.signals:
+                        # Find page number for quote
+                        page_num = None
+                        for page_idx, page_text in page_texts.items():
+                            if signal.specific_quote.lower() in page_text.lower():
+                                page_num = page_idx
+                                break
+
+                        # Verify contact and dollar amounts
+                        contact_verified = fact_checker.validate_contact_person(signal.contact_person, raw_text)
+                        value_verified = fact_checker.validate_dollar_amount(signal.estimated_value, raw_text)
+
                         signals_data.append({
-                            'municipality_name': llm_response.municipality or metadata.municipality_name or 'Unknown',
-                            'state': llm_response.state or metadata.state,
-                            'meeting_date': llm_response.meeting_date or metadata.meeting_date,
+                            'municipality_name': validated_response.municipality or metadata.municipality_name or 'Unknown',
+                            'state': validated_response.state or metadata.state,
+                            'meeting_date': validated_response.meeting_date or metadata.meeting_date,
                             'vertical': vertical,
                             'signal_type': signal.type,
                             'specific_quote': signal.specific_quote,
+                            'page_number': page_num,
+                            'quote_verified': True,  # Only verified quotes make it here
                             'context': signal.context,
-                            'contact_person': signal.contact_person,
-                            'estimated_value': signal.estimated_value,
+                            'contact_person': signal.contact_person if contact_verified else None,
+                            'estimated_value': signal.estimated_value if value_verified else None,
                             'urgency': signal.urgency,
                             'next_action': signal.next_action,
-                            'confidence_score': llm_response.confidence,
-                            'raw_llm_response': llm_response.json(),
+                            'confidence_score': validated_response.confidence,
+                            'raw_llm_response': validated_response.json(),
+                            'validation_warnings': json.dumps(validation_warnings),
                         })
 
                     db.insert_signals(doc_id, signals_data)
                     signals_found += len(signals_data)
 
+                    warning_indicator = " ⚠️" if validation_warnings else ""
                     console.print(
                         f"  [green]✓[/green] {pdf_path.name}: "
-                        f"{len(signals_data)} signal(s) found "
-                        f"(confidence: {llm_response.confidence:.2f})"
+                        f"{len(signals_data)} verified signal(s) "
+                        f"(confidence: {validated_response.confidence:.2f}){warning_indicator}"
                     )
+
+                    if validation_warnings:
+                        console.print(f"    [yellow]Warnings: {len(validation_warnings)} quote(s) removed after validation[/yellow]")
                 else:
                     console.print(f"  [dim]○[/dim] {pdf_path.name}: No signals detected")
 

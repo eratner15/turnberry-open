@@ -98,7 +98,12 @@ class ReportGenerator:
         lines.append("")
 
         lines.append("**Direct Quote**:")
-        lines.append(f"> {signal['specific_quote']}")
+        page_ref = f" *(Page {signal['page_number']})*" if signal.get('page_number') else ""
+        lines.append(f"> {signal['specific_quote']}{page_ref}")
+
+        # Show verification status
+        if signal.get('quote_verified'):
+            lines.append(f"> ✓ *Quote verified in source document*")
         lines.append("")
 
         lines.append("**Next Steps**:")

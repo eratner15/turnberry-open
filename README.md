@@ -27,40 +27,60 @@ export OPENAI_API_KEY="your-key-here"
 echo "OPENAI_API_KEY=your-key-here" > .env
 ```
 
-### Basic Usage
+### Zero-Setup Usage (Recommended)
+
+The scraper downloads PDFs automatically - no manual hunting required:
 
 ```bash
 # 1. Initialize the database
 municipal-miner init --db-path ./miner.db
 
-# 2. Process a folder of PDFs
+# 2. Scrape PDFs from Texas cities (automatic!)
+municipal-miner scrape \
+  --city all \
+  --max-pdfs 5 \
+  --pdf-dir ./test_pdfs
+
+# 3. Process scraped PDFs (with anti-hallucination validation)
 municipal-miner process \
   --pdf-dir ./test_pdfs \
   --vertical police-tech \
   --db-path ./miner.db
 
-# 3. Generate an intelligence report
+# 4. Generate an intelligence report
 municipal-miner report \
   --db-path ./miner.db \
   --vertical police-tech \
   --format markdown \
   --output ./intelligence_report.md
 
-# 4. Check statistics
+# 5. Check statistics
 municipal-miner stats --db-path ./miner.db
 ```
 
+### Manual PDF Upload (Alternative)
+
+If you prefer to download PDFs manually, skip the scrape command and add PDFs to `./test_pdfs/`.
+
 ## What It Does
 
-### 1. PDF Processing
+### 1. Automated Scraping (NEW!)
+- Automatically downloads PDFs from 5 major Texas cities
+- Austin, Dallas, Houston, San Antonio, Fort Worth
+- Finds council meeting agendas, minutes, and packets
+- Respects rate limits (2-second delay between requests)
+- No manual PDF hunting required
+
+### 2. PDF Processing
 - Extracts text from municipal meeting documents
+- **Tracks page numbers for every piece of text**
 - Parses metadata (municipality name, meeting date, type)
 - Handles common PDF formats (including scanned documents)
 - Deduplicates based on file hash
 
-### 2. LLM Classification
+### 3. LLM Classification with Anti-Hallucination
 - Uses GPT-4o-mini by default (cost-efficient)
-- Specialized prompts for different verticals (police-tech, fleet, infrastructure)
+- **Specialized prompts emphasizing VERBATIM quotes only**
 - Extracts structured signals with confidence scores
 - Identifies:
   - Budget approvals
@@ -68,11 +88,21 @@ municipal-miner stats --db-path ./miner.db
   - Pilot programs
   - Needs discussions
 
-### 3. Intelligence Reports
-- Markdown reports with prioritized signals
+### 4. Multi-Layer Validation (NEW!)
+- **Quote Verification**: Every quote verified against source (≥85% similarity)
+- **Page Attribution**: Track which page each quote comes from
+- **Fact Checking**: Verify contact names and dollar amounts appear in source
+- **Audit Trail**: Log all validation warnings
+- **Only verified intelligence makes it to reports**
+
+See [ANTI_HALLUCINATION.md](ANTI_HALLUCINATION.md) for full details on how we prevent fabrication.
+
+### 5. Intelligence Reports
+- Markdown reports with **page-attributed, verified quotes**
 - CSV exports for CRM integration
 - Confidence-based categorization (high/medium/low)
 - Timeline of decision points
+- **Verification badges** showing quote authenticity
 
 ## Supported Verticals
 
@@ -89,6 +119,35 @@ Detects buying signals for:
 **Coming soon**: `fleet`, `water-infrastructure`, `public-works`
 
 ## CLI Commands
+
+### `scrape` (NEW!)
+Automatically download PDFs from Texas municipal websites.
+
+```bash
+# Scrape all cities (5 PDFs each)
+municipal-miner scrape --city all --max-pdfs 5
+
+# Scrape specific city
+municipal-miner scrape --city austin --max-pdfs 10
+
+# Custom download directory
+municipal-miner scrape \
+  --city all \
+  --max-pdfs 5 \
+  --pdf-dir ./my_pdfs
+```
+
+**Options:**
+- `--city`: City to scrape: `austin`, `dallas`, `houston`, `san-antonio`, `fort-worth`, `all` (default: `all`)
+- `--max-pdfs`: Max PDFs per city (default: `5`)
+- `--pdf-dir`: Download directory (default: `./test_pdfs`)
+
+**Supported Cities:**
+- Austin City Council
+- Dallas City Council
+- Houston City Council
+- San Antonio City Clerk
+- Fort Worth City Secretary
 
 ### `init`
 Initialize the SQLite database.

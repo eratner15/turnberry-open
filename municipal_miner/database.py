@@ -53,6 +53,8 @@ class MunicipalDatabase:
                 "vertical": str,
                 "signal_type": str,
                 "specific_quote": str,
+                "page_number": int,  # Page where quote appears
+                "quote_verified": bool,  # Whether quote was verified in source
                 "context": str,
                 "contact_person": str,
                 "estimated_value": str,
@@ -60,6 +62,7 @@ class MunicipalDatabase:
                 "next_action": str,
                 "confidence_score": float,
                 "raw_llm_response": str,
+                "validation_warnings": str,  # JSON array of warnings
                 "created_at": str,
             }, pk="id", foreign_keys=[("document_id", "documents", "id")])
 

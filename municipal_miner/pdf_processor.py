@@ -2,7 +2,7 @@
 
 import re
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 from datetime import datetime
 
 import fitz  # PyMuPDF
@@ -17,12 +17,13 @@ class PDFProcessor:
     def __init__(self):
         pass
 
-    def process_pdf(self, pdf_path: Path) -> Tuple[str, DocumentMetadata, int]:
+    def process_pdf(self, pdf_path: Path) -> Tuple[str, DocumentMetadata, int, Dict[int, str]]:
         """
         Extract text and metadata from a PDF.
 
         Returns:
-            (raw_text, metadata, page_count)
+            (raw_text, metadata, page_count, page_texts)
+            page_texts: Dict mapping page number (1-indexed) to text content
         """
         logger.info(f"Processing PDF: {pdf_path.name}")
 
@@ -30,11 +31,15 @@ class PDFProcessor:
             doc = fitz.open(pdf_path)
             page_count = len(doc)
 
-            # Extract all text
+            # Extract all text with page tracking
             raw_text = ""
+            page_texts = {}
+
             for page_num in range(page_count):
                 page = doc[page_num]
-                raw_text += page.get_text()
+                page_text = page.get_text()
+                page_texts[page_num + 1] = page_text  # 1-indexed for human readability
+                raw_text += page_text
 
             doc.close()
 
@@ -42,7 +47,7 @@ class PDFProcessor:
             metadata = self._parse_metadata(pdf_path, raw_text)
 
             logger.info(f"Extracted {len(raw_text)} chars from {page_count} pages")
-            return raw_text, metadata, page_count
+            return raw_text, metadata, page_count, page_texts
 
         except Exception as e:
             logger.error(f"Failed to process {pdf_path.name}: {e}")
