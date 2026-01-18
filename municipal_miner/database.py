@@ -103,16 +103,24 @@ class MunicipalDatabase:
 
     def get_signals(self, vertical: Optional[str] = None, min_confidence: float = 0.0) -> List[Dict[str, Any]]:
         """Retrieve signals with optional filtering."""
-        query = "SELECT * FROM signals WHERE confidence_score >= ?"
+        # Build query
+        conditions = ["confidence_score >= ?"]
         params = [min_confidence]
 
         if vertical:
-            query += " AND vertical = ?"
+            conditions.append("vertical = ?")
             params.append(vertical)
 
-        query += " ORDER BY confidence_score DESC, meeting_date DESC"
+        where_clause = " AND ".join(conditions)
 
-        return list(self.db.execute(query, params).fetchall())
+        # Use sqlite-utils rows_where which returns dicts
+        signals = list(self.db["signals"].rows_where(
+            where_clause,
+            params,
+            order_by="-confidence_score, -meeting_date"
+        ))
+
+        return signals
 
     def get_stats(self) -> Dict[str, Any]:
         """Get database statistics."""

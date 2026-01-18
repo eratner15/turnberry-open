@@ -15,6 +15,7 @@ from .classifier import SignalClassifier
 from .reporter import ReportGenerator
 from .scraper import MunicipalScraper
 from .validator import QuoteValidator, FactChecker
+from .demo import DemoClassifier
 
 console = Console()
 
@@ -108,7 +109,8 @@ def scrape(pdf_dir, city, max_pdfs):
 @click.option('--vertical', required=True, help='Vertical to analyze (e.g., police-tech)')
 @click.option('--db-path', default='./miner.db', help='Path to SQLite database')
 @click.option('--model', default='gpt-4o-mini', help='LLM model to use')
-def process(pdf_dir, vertical, db_path, model):
+@click.option('--demo', is_flag=True, help='Use demo mode (no API calls required)')
+def process(pdf_dir, vertical, db_path, model, demo):
     """Process PDFs and extract signals."""
 
     pdf_dir = Path(pdf_dir)
@@ -125,12 +127,20 @@ def process(pdf_dir, vertical, db_path, model):
     console.print(f"[bold]Found {len(pdf_files)} PDF files[/bold]")
     console.print(f"Vertical: {vertical}")
     console.print(f"Model: {model}")
+    if demo:
+        console.print(f"[yellow]DEMO MODE - No API calls will be made[/yellow]")
     console.print("")
 
     # Initialize components
     db = MunicipalDatabase(db_path)
     pdf_processor = PDFProcessor()
-    classifier = SignalClassifier(model_name=model)
+
+    # Use demo classifier if demo mode enabled
+    if demo:
+        classifier = DemoClassifier(model_name="demo")
+    else:
+        classifier = SignalClassifier(model_name=model)
+
     validator = QuoteValidator(min_similarity=0.85)  # 85% similarity required
     fact_checker = FactChecker()
 
@@ -312,9 +322,10 @@ def stats(db_path):
         console.print(f"  Total signals: {stats['total_signals']}")
 
         # Signal breakdown by vertical
-        signals_by_vertical = db.db.execute(
+        result = db.db.execute(
             "SELECT vertical, COUNT(*) as count FROM signals GROUP BY vertical"
-        ).fetchall()
+        )
+        signals_by_vertical = [dict(row) for row in result.fetchall()]
 
         if signals_by_vertical:
             console.print("")
