@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Municipal Miner specific
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+test_pdfs/*.pdf
+*.env
+first_report.md
+intelligence_report.md
+signals.csv
+miner.db
+
+# Keep test_pdfs directory but not PDFs
+test_pdfs/*
+!test_pdfs/README.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
